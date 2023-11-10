@@ -302,12 +302,13 @@ void scalar_product_file() {
     int scalar = 42;
 
     TEST_ASSERT_EQUAL_INT32(0, matrix_allocate_and_init_file(&m, f1));
+
     TEST_ASSERT_EQUAL_INT32(0, matrix_allocate_and_init_file(&expected, f2));
 
     TEST_ASSERT_EQUAL_INT32(0, matrix_scalar_product(&m, scalar, &result));
-
+    printf("here \n");
     TEST_ASSERT_TRUE(matrix_equal(&expected, &result));
-
+    printf("here \n");
     matrix_free(&m);
     matrix_free(&expected);
     matrix_free(&result);
@@ -318,12 +319,17 @@ void transposition_file() {
     char *f1 = "matrix-samples/m-5-10-a.txt";
     char *f2 = "matrix-samples/transposition.txt";
 
+
+
     TEST_ASSERT_EQUAL_INT32(0, matrix_allocate_and_init_file(&m, f1));
+
     TEST_ASSERT_EQUAL_INT32(0, matrix_allocate_and_init_file(&expected, f2));
 
     TEST_ASSERT_EQUAL_INT32(0, matrix_transposition(&m, &result));
 
     TEST_ASSERT_TRUE(matrix_equal(&expected, &result));
+    
+    
 
     matrix_free(&m);
     matrix_free(&expected);

@@ -5,34 +5,32 @@
 #include <errno.h> /* for ENOSYS */
 
 int matrix_allocate(matrix_t *m, int rows, int columns) {
-    if (m == NULL ) {
-        return 1; 
+     if (m == NULL) {
+        return 1; // Invalid matrix.
     }
-    
-    /*Set rows and columns*/
+
+    /* Set rows and columns */
     m->rows = rows;
     m->columns = columns;
 
-    /*MEMORY ALLOCATION*/
-    m->content = (int **)malloc(rows*sizeof(int *));
-    if(m->content == NULL){
-        return 2;
+    /* Memory allocation */
+    m->content = (int **)malloc(rows * sizeof(int *));
+    if (m->content == NULL) {
+        return 2; // Failed to allocate memory.
     }
 
-    for (int i = 0; i< rows; i++){
+    for (int i = 0; i < rows; i++) {
         m->content[i] = (int *)malloc(columns * sizeof(int));
-        if(m->content[i] == NULL){
-            for(int j = 0; j < i; j++){
+        if (m->content[i] == NULL) {
+            for (int j = 0; j < i; j++) {
                 free(m->content[j]);
             }
             free(m->content);
-
-            return 2;
+            return 2; // Failed to allocate memory.
         }
     }
 
-    return 0;
-
+    return 0; // Memory allocation successful.
 }
 void matrix_free(matrix_t *m) {
 
@@ -96,11 +94,10 @@ int matrix_init_identity(matrix_t *m){
 void matrix_init_rand(matrix_t *m, int val_min, int val_max) {
 
 
-    int randnum;
     if (m-> content != NULL){
         for (int i = 0; i < m->rows; i++) {
             for (int j = 0; j < m->columns; j++) {
-            randnum = rand() % (val_max + 1 - val_min) + val_min;
+            int randnum = rand() % (val_max + 1 - val_min) + val_min;
             m->content[i][j] = randnum;
         }
     }
@@ -153,29 +150,20 @@ int matrix_sum(matrix_t *m1, matrix_t *m2, matrix_t *result) {
 }
 
 int matrix_scalar_product(matrix_t *m, int scalar, matrix_t *result) {
-    
-    if (m == NULL || result == NULL ) {
-        return 1; 
-    }
-
-    int rows = m->rows;
-    int columns = m->columns;
-
-    int resultCode = matrix_allocate(result, rows, columns);
-
-    if (resultCode != 0) {
-        return resultCode; 
-    }
-    
-    for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < rows; j++) {
-                int mcon = m->content[i][j];
-                result->content[i][j] = scalar * mcon;
+    if (m && m->content){
+        if(matrix_allocate(result,m->rows,m->columns) != 0){
+            return -1;
+        }
+        for(int i=0; i< m->rows; i++){
+            for(int j = 0; j< m->columns; j++){
+                result->content[i][j] = m->content[i][j] * scalar;
             }
 
         }
-
-    return 0;
+        return 0;
+    }
+    return -1;
+ 
 }
 
 
@@ -229,8 +217,7 @@ int matrix_product(matrix_t *m1, matrix_t *m2, matrix_t *result) {
 }
 
 int matrix_dump_file(matrix_t *m, char *output_file) {
-    FILE *file;
-    file = fopen(output_file, "w");
+    FILE *file = fopen(output_file, "w");
 
     if (file == NULL) {
         // Failed to open the file
@@ -242,14 +229,13 @@ int matrix_dump_file(matrix_t *m, char *output_file) {
         for (int j = 0; j < m->columns; j++) {
             // Write each element, separated by spaces
             fprintf(file, "%d", m->content[i][j]);
-            
+
             // Add a space unless it's the last element in the row
             if (j < m->columns - 1) {
-                //fprintf(file, "%d ");
-                fprintf(file, "%d ", m->content[i][j]);
+                fprintf(file, " ");
             }
         }
-        
+
         // Add a newline to separate rows
         fprintf(file, "\n");
     }
@@ -260,16 +246,17 @@ int matrix_dump_file(matrix_t *m, char *output_file) {
     return 0;
 }
 
+
 int matrix_allocate_and_init_file(matrix_t *m, char *input_file) {
     FILE *file = fopen(input_file, "r");
 
     if (file == NULL) {
-        // Failed to open the file.
-        return -1;
+        return -1; // Failed to open the file.
     }
 
+    // FIND COLUMNS AND ROWS IN MATRIX IN FILE
     int rows = 0, columns = 0;
-    char line[1024]; // Adjust the buffer size as needed
+    char line[1024];
 
     while (fgets(line, sizeof(line), file) != NULL) {
         char *token = strtok(line, " "); // Split the line by space
@@ -284,9 +271,8 @@ int matrix_allocate_and_init_file(matrix_t *m, char *input_file) {
         if (columns == 0) {
             columns = current_columns;
         } else if (current_columns != columns) {
-            // Inconsistent number of columns in the matrix.
             fclose(file);
-            return 1;
+            return 1; // Inconsistent number of columns in the matrix.
         }
 
         rows++;
@@ -294,14 +280,35 @@ int matrix_allocate_and_init_file(matrix_t *m, char *input_file) {
 
     fclose(file);
 
-    // Allocate memory for the matrix.
+    // ALLOCATE TO MATRIX
     int resultCode = matrix_allocate(m, rows, columns);
 
     if (resultCode != 0) {
-        // Memory allocation failed.
-        return resultCode;
+        return resultCode; // Memory allocation failed.
     }
 
-    // Successfully allocated and initialized the matrix.
+    // READ VALUES FROM FILE AND INITIALIZE THE MATRIX
+    file = fopen(input_file, "r");
+
+    if (file == NULL) {
+        return -1; // Failed to open the file.
+    }
+
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < columns; j++) {
+            if (fscanf(file, "%d", &m->content[i][j]) != 1) {
+                fclose(file);
+                return 1; // Failed to read a value from the file.
+            }
+        }
+    }
+
+    fclose(file);
+
+    return 0; // Successfully allocated and initialized the matrix.
+}
+
+int main(){
     return 0;
 }
+    
